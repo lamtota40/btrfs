@@ -84,7 +84,6 @@ sudo rmdir /mnt/btrfs-top
 sudo umount /mnt/rootfs
 
 # Sukses dan prompt sebelum reboot
-echo
 echo "✅ Proses perpindahan @home ke @ berhasil"
 echo "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
 read
