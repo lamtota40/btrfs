@@ -82,11 +82,10 @@ sudo rmdir /mnt/btrfs-top
 
 # Unmount rootfs
 sudo umount /mnt/rootfs
+sync
 
 # Sukses dan prompt sebelum reboot
 echo "✅ Proses perpindahan @home ke @ berhasil"
 echo "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
 read
-
-sync
 sudo reboot
