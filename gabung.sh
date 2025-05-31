@@ -65,7 +65,29 @@ update-grub
 sudo umount /mnt/rootfs/dev
 sudo umount /mnt/rootfs/proc
 sudo umount /mnt/rootfs/sys
+
+# Tambahan: hapus subvolume @home dari top-level
+sudo mkdir -p /mnt/btrfs-top
+for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
+    if sudo mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
+        if sudo btrfs subvolume list /mnt/btrfs-top | grep -q "@home"; then
+            echo "🗑️  Menghapus subvolume @home dari $DEV"
+            sudo btrfs subvolume delete /mnt/btrfs-top/@home
+        fi
+        sudo umount /mnt/btrfs-top
+        break
+    fi
+done
+sudo rmdir /mnt/btrfs-top
+
+# Unmount rootfs
 sudo umount /mnt/rootfs
+
+# Sukses dan prompt sebelum reboot
+echo
+echo "✅ Proses perpindahan @home ke @ berhasil"
+echo "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
+read
 
 sync
 sudo reboot
