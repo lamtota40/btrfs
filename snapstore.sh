@@ -52,12 +52,15 @@ while true; do
 
     case "$pilmen" in
         1)
-            echo "1.Snapshoot to"
+            echo "1.Snapshoot to internal"
             echo "2.Snapshoot to file"
             echo "3.Snapshoot to file+Compress"
             read -p "Silahkan input pilihan SubMenu anda : " pilsub
             case "$pilsub" in
             1)
+            mount_btrfs
+            sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+            umount /mnt/btrfs
             ;;
             2)
             ;;
