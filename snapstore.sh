@@ -16,6 +16,16 @@ for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
 return 1
 }
 
+del_snap(){
+if [ ! -d /mnt/btrfs/@_backup ]; then
+    if mount | grep -q /mnt/btrfs/@_backup; then
+       sudo umount /mnt/btrfs/@_backup
+    fi
+    sudo btrfs subvolume delete /mnt/btrfs/@_backup
+fi
+return 1
+}
+
 mount_btrfs
 sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
 
@@ -59,6 +69,7 @@ while true; do
             case "$pilsub" in
             1)
             mount_btrfs
+            del_snap
             sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
             umount /mnt/btrfs
             ;;
@@ -66,12 +77,14 @@ while true; do
             mount_btrfs
             sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
             sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
+            del_snap
             umount /mnt/btrfs
             ;;
             3)
             mount_btrfs
             sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
             sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
+            del_snap
             umount /mnt/btrfs
             ;;
             pause
