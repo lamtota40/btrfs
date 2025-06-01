@@ -26,24 +26,6 @@ fi
 return 1
 }
 
-mount_btrfs
-sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
-
-
-sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
-#backup tanpa kompresi
-sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
-#backup ke partisi lain misal /dev/sda2
-sudo btrfs send /mnt/btrfs/@_backup > /mnt/sda2/btrfs-sda1-backup.img
-sudo btrfs send /mnt/btrfs/@_backup | gzip -c > /mnt/sda2/btrfs-sda1-backup.img.gz
-
-
-echo "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
-read
-
-
-#!/bin/bash
-
 pause() {
     echo
     read -p "Tekan [Enter] untuk kembali ke menu utama..."
@@ -105,3 +87,23 @@ while true; do
             ;;
     esac
 done
+
+
+
+
+mount_btrfs
+sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+
+
+sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
+#backup tanpa kompresi
+sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
+#backup ke partisi lain misal /dev/sda2
+sudo btrfs send /mnt/btrfs/@_backup > /mnt/sda2/btrfs-sda1-backup.img
+sudo btrfs send /mnt/btrfs/@_backup | gzip -c > /mnt/sda2/btrfs-sda1-backup.img.gz
+
+
+echo "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
+read
+
+
