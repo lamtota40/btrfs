@@ -48,8 +48,8 @@ while true; do
             echo "1. Snapshoot to internal"
             echo "2. Snapshoot to file"
             echo "3. Snapshoot to file + Compress"
-            read -p "Silahkan input pilihan SubMenu anda : " pilsub
-            case "$pilsub" in
+            read -p "Silahkan input pilihan SubMenu anda : " pilsub1
+            case "$pilsub1" in
                 1)
                     mount_btrfs
                     del_snap
@@ -82,7 +82,23 @@ while true; do
             esac
             ;;
         2)
+            echo "1. Restore from internal"
+            echo "2. Snapshoot from file"
+            echo "3. Snapshoot from file + Compress"
+            read -p "Silahkan input pilihan SubMenu anda : " pilsub2
+            case "$pilsub2" in
+                1)
+                    mount_btrfs
+                    del_snap
+                    sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+                    sudo umount /mnt/btrfs
+                    pause
+                    ;;
+
+                    
             sudo mount -o subvolid=5 /dev/sda1 /mnt
+            if [ -d /mnt/btrfs/@_backup ]; then
+            fi
 sudo btrfs subvolume delete /mnt/@
 sudo btrfs subvolume delete /mnt/@home
 sudo btrfs subvolume snapshot /mnt/@clean /mnt/@
