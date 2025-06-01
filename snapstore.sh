@@ -72,8 +72,8 @@ while true; do
             pause
             ;;
         2)
-            echo "[+] Opsi 2: SnapShoot"
-            # Tambahkan script snapshot di sini
+            echo "[+] Opsi 2: restore"
+            # script untuk restore
             pause
             ;;
   
