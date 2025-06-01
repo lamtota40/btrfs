@@ -6,6 +6,7 @@ sudo mkdir -p /mnt/btrfs
 for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
         echo "🔍 Mencoba mount $DEV -o subvol=0 ke /mnt/btrfs"
         if sudo mount -o subvol=0 "$DEV" /mnt/btrfs 2>/dev/null; then
+            sudo btrfs subvolume list /mnt/btrfs
             echo "✅ Berhasil mount $DEV ke /mnt/btrfs dengan subvol=0"
             return 0
         else
