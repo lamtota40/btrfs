@@ -1,9 +1,9 @@
 #!/bin/bash
 
 mount_btrfs(){
-sudo mkdir -p /mnt/btrfs
+    sudo mkdir -p /mnt/btrfs
 
-for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
+    for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
         echo "🔍 Mencoba mount $DEV -o subvol=0 ke /mnt/btrfs"
         if sudo mount -o subvol=0 "$DEV" /mnt/btrfs 2>/dev/null; then
             sudo btrfs subvolume list /mnt/btrfs
@@ -13,17 +13,18 @@ for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
             echo "❌ Gagal mount $DEV"
         fi
     done
-return 1
+    return 1
 }
 
 del_snap(){
-if [ ! -d /mnt/btrfs/@_backup ]; then
-    if mount | grep -q /mnt/btrfs/@_backup; then
-       sudo umount /mnt/btrfs/@_backup
+    if [ -d /mnt/btrfs/@_backup ]; then
+        if mount | grep -q "/mnt/btrfs/@_backup"; then
+            echo "⚠️ Snapshot @_backup sedang di-mount. Unmounting..."
+            sudo umount /mnt/btrfs/@_backup
+        fi
+        echo "🗑️ Menghapus snapshot @_backup..."
+        sudo btrfs subvolume delete /mnt/btrfs/@_backup
     fi
-    sudo btrfs subvolume delete /mnt/btrfs/@_backup
-fi
-return 1
 }
 
 pause() {
@@ -44,39 +45,47 @@ while true; do
 
     case "$pilmen" in
         1)
-            echo "1.Snapshoot to internal"
-            echo "2.Snapshoot to file"
-            echo "3.Snapshoot to file+Compress"
+            echo "1. Snapshoot to internal"
+            echo "2. Snapshoot to file"
+            echo "3. Snapshoot to file + Compress"
             read -p "Silahkan input pilihan SubMenu anda : " pilsub
             case "$pilsub" in
-            1)
-            mount_btrfs
-            del_snap
-            sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
-            umount /mnt/btrfs
-            ;;
-            2)
-            mount_btrfs
-            sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
-            sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
-            del_snap
-            umount /mnt/btrfs
-            ;;
-            3)
-            mount_btrfs
-            sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
-            sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
-            del_snap
-            umount /mnt/btrfs
-            ;;
-            pause
+                1)
+                    mount_btrfs
+                    del_snap
+                    sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+                    sudo umount /mnt/btrfs
+                    pause
+                    ;;
+                2)
+                    mount_btrfs
+                    del_snap
+                    sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+                    sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
+                    del_snap
+                    sudo umount /mnt/btrfs
+                    pause
+                    ;;
+                3)
+                    mount_btrfs
+                    del_snap
+                    sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+                    sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
+                    del_snap
+                    sudo umount /mnt/btrfs
+                    pause
+                    ;;
+                *)
+                    echo "Input SubMenu tidak valid"
+                    pause
+                    ;;
+            esac
             ;;
         2)
             echo "[+] Opsi 2: restore"
             # script untuk restore
             pause
             ;;
-  
         0)
             echo "Keluar dari program.."
             exit 0
@@ -87,7 +96,6 @@ while true; do
             ;;
     esac
 done
-
 
 
 
