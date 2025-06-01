@@ -63,8 +63,16 @@ while true; do
             umount /mnt/btrfs
             ;;
             2)
+            mount_btrfs
+            sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+            sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
+            umount /mnt/btrfs
             ;;
             3)
+            mount_btrfs
+            sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+            sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
+            umount /mnt/btrfs
             ;;
             pause
             ;;
