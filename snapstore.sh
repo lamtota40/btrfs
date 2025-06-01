@@ -56,13 +56,13 @@ while true; do
             echo "2.Snapshoot to file"
             echo "3.Snapshoot to file+Compress"
             read -p "Silahkan input pilihan SubMenu anda : " pilsub
-            case "$pilmen" in
+            case "$pilsub" in
             1)
             ;;
             2)
             ;;
             3)
-            
+            ;;
             pause
             ;;
         2)
