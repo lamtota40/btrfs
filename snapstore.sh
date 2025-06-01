@@ -82,8 +82,13 @@ while true; do
             esac
             ;;
         2)
-            echo "[+] Opsi 2: restore"
-            # script untuk restore
+            mount -o subvolid=5 /dev/sda1 /mnt
+cd /mnt
+btrfs subvolume delete @
+btrfs subvolume delete @home
+btrfs subvolume snapshot @clean @
+btrfs subvolume snapshot @home_clean @home
+sync
             pause
             ;;
         0)
