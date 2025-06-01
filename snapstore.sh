@@ -88,7 +88,8 @@ while true; do
             read -p "Silahkan input pilihan SubMenu anda : " pilsub2
             case "$pilsub2" in
                 1)
-                    mount_btrfs
+                    sudo mount -o subvolid=5 /dev/sda1 /mnt/restore
+                    if [ -d /mnt/btrfs/@_backup ]; then
                     del_snap
                     sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
                     sudo umount /mnt/btrfs
@@ -96,9 +97,8 @@ while true; do
                     ;;
 
                     
-            sudo mount -o subvolid=5 /dev/sda1 /mnt
-            if [ -d /mnt/btrfs/@_backup ]; then
-            fi
+            
+            
 sudo btrfs subvolume delete /mnt/@
 sudo btrfs subvolume delete /mnt/@home
 sudo btrfs subvolume snapshot /mnt/@clean /mnt/@
