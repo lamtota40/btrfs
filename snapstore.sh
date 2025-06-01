@@ -30,3 +30,54 @@ sudo btrfs send /mnt/btrfs/@_backup | gzip -c > /mnt/sda2/btrfs-sda1-backup.img.
 
 echo "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
 read
+
+
+#!/bin/bash
+
+pause() {
+    echo
+    read -p "Tekan [Enter] untuk kembali ke menu utama..."
+}
+
+while true; do
+    clear
+    echo "==============================="
+    echo "       SnapStore BTRFS         "
+    echo "==============================="
+    echo "1. SnapShoot"
+    echo "2. Restore"
+    echo "0. Exit"
+    echo "==============================="
+    read -p "Silahkan input pilihan Menu anda : " pilmen
+
+    case "$pilmen" in
+        1)
+            echo "1.Snapshoot to"
+            echo "2.Snapshoot to file"
+            echo "3.Snapshoot to file+Compress"
+            read -p "Silahkan input pilihan SubMenu anda : " pilsub
+            case "$pilmen" in
+            1)
+            ;;
+            2)
+            ;;
+            3)
+            
+            pause
+            ;;
+        2)
+            echo "[+] Opsi 2: SnapShoot"
+            # Tambahkan script snapshot di sini
+            pause
+            ;;
+  
+        0)
+            echo "Keluar dari program.."
+            exit 0
+            ;;
+        *)
+            echo "Input salah/tidak diketahui!"
+            pause
+            ;;
+    esac
+done
