@@ -82,12 +82,11 @@ while true; do
             esac
             ;;
         2)
-            mount -o subvolid=5 /dev/sda1 /mnt
-cd /mnt
-btrfs subvolume delete @
-btrfs subvolume delete @home
-btrfs subvolume snapshot @clean @
-btrfs subvolume snapshot @home_clean @home
+            sudo mount -o subvolid=5 /dev/sda1 /mnt
+sudo btrfs subvolume delete /mnt/@
+sudo btrfs subvolume delete /mnt/@home
+sudo btrfs subvolume snapshot /mnt/@clean /mnt/@
+sudo btrfs subvolume snapshot /mnt/@home_clean /mnt/@home
 sync
             pause
             ;;
