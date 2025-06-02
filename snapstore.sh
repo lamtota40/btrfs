@@ -101,7 +101,7 @@ while true; do
                     mount_btrfs 0 /mnt/restore
                     echo "🗑️ Menghapus subvolume lama @..."
                     sudo btrfs subvolume delete /mnt/restore/@
-                    echo "♻️ Membuat snapshot baru dari @_backup ke @..."
+                    echo "♻️ memindahkan subvolume @_backup ke @..."
                     sudo btrfs subvolume snapshot /mnt/restore/@_backup /mnt/restore/@
                     sudo umount /mnt/restore
                     sync
