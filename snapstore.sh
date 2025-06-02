@@ -26,7 +26,6 @@ mount_btrfs() {
     return 1
 }
 
-
 del_snap(){
     if [ -d /mnt/btrfs/@_backup ]; then
         if mount | grep -q "/mnt/btrfs/@_backup"; then
@@ -101,18 +100,30 @@ while true; do
                 1)
                     mount_btrfs 5 /mnt/restore
                     sudo btrfs subvolume delete /mnt/restore/@
-                    sudo btrfs subvolume snapshot /mnt/restore/@clean /mnt/restore@
+                    sudo btrfs subvolume snapshot /mnt/restore/@clean /mnt/restore/@
                     sudo umount /mnt/restore
                     sync
+                    pause
                     ;;
                 2)
+                    mount_btrfs 5 /mnt/restore
+                    sudo btrfs receive /mnt/restore < btrfs-backup.img
+                    sudo umount /mnt/restore
+                    sync
+                    pause
                     ;;
                 3)
+                    mount_btrfs 5 /mnt/restore
+                    gunzip -c btrfs-backup.img.gz | sudo btrfs receive /mnt/restore
+                    sudo umount /mnt/restore
+                    sync
+                    pause
                     ;;
                 *)
-                    echo "Input salah/tidak diketahui!"
+                    echo "Input SubMenu tidak valid!"
+                    pause
                     ;;
-            pause
+            esac
             ;;
         0)
             echo "Keluar dari program.."
@@ -124,22 +135,3 @@ while true; do
             ;;
     esac
 done
-
-
-
-mount_btrfs
-sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
-
-
-sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
-#backup tanpa kompresi
-sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
-#backup ke partisi lain misal /dev/sda2
-sudo btrfs send /mnt/btrfs/@_backup > /mnt/sda2/btrfs-sda1-backup.img
-sudo btrfs send /mnt/btrfs/@_backup | gzip -c > /mnt/sda2/btrfs-sda1-backup.img.gz
-
-
-echo "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
-read
-
-
