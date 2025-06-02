@@ -1,20 +1,31 @@
 #!/bin/bash
 
-mount_btrfs(){
-    sudo mkdir -p /mnt/btrfs
+mount_btrfs() {
+    local SUBVOLID="$1"
+    local MOUNTPOINT="$2"
+
+    if [ -z "$SUBVOLID" ] || [ -z "$MOUNTPOINT" ]; then
+        echo "❌ Penggunaan: mount_btrfs <subvolid> <mountpoint>"
+        return 1
+    fi
+
+    sudo mkdir -p "$MOUNTPOINT"
 
     for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-        echo "🔍 Mencoba mount $DEV -o subvol=0 ke /mnt/btrfs"
-        if sudo mount -o subvol=0 "$DEV" /mnt/btrfs 2>/dev/null; then
-            sudo btrfs subvolume list /mnt/btrfs
-            echo "✅ Berhasil mount $DEV ke /mnt/btrfs dengan subvol=0"
+        echo "🔍 Mencoba mount $DEV -o subvolid=$SUBVOLID ke $MOUNTPOINT"
+        if sudo mount -o subvolid="$SUBVOLID" "$DEV" "$MOUNTPOINT" 2>/dev/null; then
+            echo "✅ Berhasil mount $DEV ke $MOUNTPOINT dengan subvolid=$SUBVOLID"
+            sudo btrfs subvolume list "$MOUNTPOINT"
             return 0
         else
             echo "❌ Gagal mount $DEV"
         fi
     done
+
+    echo "❌ Tidak ada partisi BTRFS yang berhasil di-mount."
     return 1
 }
+
 
 del_snap(){
     if [ -d /mnt/btrfs/@_backup ]; then
