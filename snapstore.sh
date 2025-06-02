@@ -14,7 +14,7 @@ mount_btrfs() {
     for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
         echo "🔍 Mencoba mount $DEV -o subvolid=$SUBVOLID ke $MOUNTPOINT"
         if sudo mount -o subvolid="$SUBVOLID" "$DEV" "$MOUNTPOINT" 2>/dev/null; then
-            echo "✅ Berhasil mount $DEV ke $MOUNTPOINT dengan subvolid=$SUBVOLID"
+            echo "✅  Berhasil mount $DEV ke $MOUNTPOINT dengan subvolid=$SUBVOLID"
             sudo btrfs subvolume list "$MOUNTPOINT"
             return 0
         else
@@ -98,29 +98,25 @@ while true; do
             read -p "Silahkan input pilihan SubMenu anda : " pilsub2
             case "$pilsub2" in
                 1)
-                    mount_btrfs 5 /mnt/restore
+                    mount_btrfs 0 /mnt/restore
+                    echo "🗑️ Menghapus subvolume lama @..."
                     sudo btrfs subvolume delete /mnt/restore/@
-                    sudo btrfs subvolume snapshot /mnt/restore/@clean /mnt/restore/@
+                    echo "♻️ Membuat snapshot baru dari @_backup ke @..."
+                    sudo btrfs subvolume snapshot /mnt/restore/@_backup /mnt/restore/@
                     sudo umount /mnt/restore
                     sync
                     pause
                     ;;
                 2)
-                    mount_btrfs 5 /mnt/restore
-                    sudo btrfs receive /mnt/restore < btrfs-backup.img
-                    sudo umount /mnt/restore
-                    sync
+                    echo "❗ Belum diimplementasikan"
                     pause
                     ;;
                 3)
-                    mount_btrfs 5 /mnt/restore
-                    gunzip -c btrfs-backup.img.gz | sudo btrfs receive /mnt/restore
-                    sudo umount /mnt/restore
-                    sync
+                    echo "❗ Belum diimplementasikan"
                     pause
                     ;;
                 *)
-                    echo "Input SubMenu tidak valid!"
+                    echo "Input salah/tidak diketahui!"
                     pause
                     ;;
             esac
