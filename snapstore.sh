@@ -94,27 +94,24 @@ while true; do
             ;;
         2)
             echo "1. Restore from internal"
-            echo "2. Snapshoot from file"
-            echo "3. Snapshoot from file + Compress"
+            echo "2. Restore from file"
+            echo "3. Restore from file + Compress"
             read -p "Silahkan input pilihan SubMenu anda : " pilsub2
             case "$pilsub2" in
                 1)
-                    mount_btrfs 5 /mnt/btrfs
-                    if [ -d /mnt/btrfs/@_backup ]; then
-                    del_snap
-                    sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
-                    sudo umount /mnt/btrfs
-                    pause
+                    mount_btrfs 5 /mnt/restore
+                    sudo btrfs subvolume delete /mnt/restore/@
+                    sudo btrfs subvolume snapshot /mnt/restore/@clean /mnt/restore@
+                    sudo umount /mnt/restore
+                    sync
                     ;;
-
-                    
-            
-            
-sudo btrfs subvolume delete /mnt/@
-sudo btrfs subvolume delete /mnt/@home
-sudo btrfs subvolume snapshot /mnt/@clean /mnt/@
-sudo btrfs subvolume snapshot /mnt/@home_clean /mnt/@home
-sync
+                2)
+                    ;;
+                3)
+                    ;;
+                *)
+                    echo "Input salah/tidak diketahui!"
+                    ;;
             pause
             ;;
         0)
