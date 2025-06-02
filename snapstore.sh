@@ -62,14 +62,14 @@ while true; do
             read -p "Silahkan input pilihan SubMenu anda : " pilsub1
             case "$pilsub1" in
                 1)
-                    mount_btrfs
+                    mount_btrfs 0 /mnt/btrfs
                     del_snap
                     sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
                     sudo umount /mnt/btrfs
                     pause
                     ;;
                 2)
-                    mount_btrfs
+                    mount_btrfs 0 /mnt/btrfs
                     del_snap
                     sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
                     sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
@@ -78,7 +78,7 @@ while true; do
                     pause
                     ;;
                 3)
-                    mount_btrfs
+                    mount_btrfs 0 /mnt/btrfs
                     del_snap
                     sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
                     sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
@@ -99,7 +99,7 @@ while true; do
             read -p "Silahkan input pilihan SubMenu anda : " pilsub2
             case "$pilsub2" in
                 1)
-                    sudo mount -o subvolid=5 /dev/sda1 /mnt/restore
+                    mount_btrfs 5 /mnt/btrfs
                     if [ -d /mnt/btrfs/@_backup ]; then
                     del_snap
                     sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
