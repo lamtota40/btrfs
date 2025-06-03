@@ -98,12 +98,17 @@ while true; do
             read -p "Silahkan input pilihan SubMenu anda : " pilsub2
             case "$pilsub2" in
                 1)
-                    mount_btrfs 0 /mnt/restore
-                    echo "🗑️ Menghapus subvolume lama @..."
-                    sudo btrfs subvolume delete /mnt/restore/@
+                    mount_btrfs 0 /mnt/btrfs
+                    if [ -d /mnt/btrfs/@_backup ]; then
+                    echo "🗑️ Menghapus sudo btrfs subvolume snapshot /mnt/restore/@_backup /mnt/restore/@ lama @..."
+                    sudo btrfs subvolume delete /mnt/btrfs/@
                     echo "♻️ memindahkan subvolume @_backup ke @..."
-                    sudo btrfs subvolume snapshot /mnt/restore/@_backup /mnt/restore/@
-                    sudo umount /mnt/restore
+                    sudo btrfs subvolume snapshot /mnt/btrfs/@_backup /mnt/btrfs/@
+                    del_snap
+                    if else
+                    echo "❌ Gagal merestore tidak di temukan /mnt/btrfs/@_backup"
+                    fi
+                    sudo umount /mnt/btrfs
                     sync
                     pause
                     ;;
