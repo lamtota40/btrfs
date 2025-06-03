@@ -1,5 +1,68 @@
 #!/bin/bash
 
+save_file_btrfs() {
+    local MODE="$1"  # boleh kosong atau 'gzip'
+
+    echo
+    read -p "Silahkan masukkan folder tujuan [contoh: /dev/sda1/home/]: " TARGET_PATH
+
+    # Validasi awal
+    if [[ ! "$TARGET_PATH" =~ ^/dev/[^/]+/.+ ]]; then
+        echo "❌ Format input salah. Contoh yang benar: /dev/sda1/home/"
+        return 1
+    fi
+
+    DEV=$(echo "$TARGET_PATH" | cut -d'/' -f3)
+    SUBDIR=$(echo "$TARGET_PATH" | cut -d'/' -f4-)
+
+    MOUNTPOINT="/mnt/$DEV"
+    DEST_DIR="$MOUNTPOINT/$SUBDIR"
+
+    # Pilih nama file output sesuai mode
+    if [ "$MODE" == "gzip" ]; then
+        FILE_NAME="btrfs-backup.img.gz"
+    else
+        FILE_NAME="btrfs-backup.img"
+    fi
+
+    FILE_PATH="$DEST_DIR/$FILE_NAME"
+
+    echo "🔧 Menyiapkan mount point $MOUNTPOINT"
+    sudo mkdir -p "$MOUNTPOINT"
+
+    echo "📦 Mounting /dev/$DEV ke $MOUNTPOINT..."
+    if sudo mount "/dev/$DEV" "$MOUNTPOINT"; then
+        echo "✅ Berhasil mount /dev/$DEV"
+
+        if [ ! -d "$DEST_DIR" ]; then
+            echo "📁 Membuat direktori tujuan: $DEST_DIR"
+            sudo mkdir -p "$DEST_DIR"
+        fi
+
+        if [ ! -e /mnt/btrfs/@_backup ]; then
+            echo "❌ Source snapshot /mnt/btrfs/@_backup tidak ditemukan!"
+            sudo umount "$MOUNTPOINT"
+            return 2
+        fi
+
+        echo "📝 Menyimpan $FILE_NAME ke $FILE_PATH"
+
+        if [ "$MODE" == "gzip" ]; then
+            sudo btrfs send /mnt/btrfs/@_backup | gzip -c > "$FILE_PATH"
+        else
+            sudo btrfs send /mnt/btrfs/@_backup > "$FILE_PATH"
+        fi
+
+        echo "💾 File berhasil disimpan!"
+        echo "📤 Unmounting..."
+        sudo umount "$MOUNTPOINT"
+        echo "✅ Selesai!"
+    else
+        echo "❌ Gagal mount /dev/$DEV"
+        return 3
+    fi
+}
+
 mount_btrfs() {
     local SUBVOLID="$1"
     local MOUNTPOINT="$2"
@@ -71,7 +134,7 @@ while true; do
                     mount_btrfs 0 /mnt/btrfs
                     del_snap
                     sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
-                    sudo btrfs send /mnt/btrfs/@_backup > btrfs-backup.img
+                    save_file_btrfs
                     del_snap
                     sudo umount /mnt/btrfs
                     pause
@@ -80,7 +143,7 @@ while true; do
                     mount_btrfs 0 /mnt/btrfs
                     del_snap
                     sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
-                    sudo btrfs send /mnt/btrfs/@_backup | gzip -c > btrfs-backup.img.gz
+                    save_file_btrfs gzip
                     del_snap
                     sudo umount /mnt/btrfs
                     pause
