@@ -13,13 +13,14 @@ save_file_btrfs() {
 
     DEV=$(echo "$TARGET_PATH" | cut -d'/' -f3)
     SUBDIR=$(echo "$TARGET_PATH" | cut -d'/' -f4-)
-
     MOUNTPOINT="/mnt/$DEV"
     DEST_DIR="$MOUNTPOINT/$SUBDIR"
 
-    FILE_NAME="btrfs-backup.img"
-    [ "$MODE" == "gzip" ] && FILE_NAME="btrfs-backup.img.gz"
-
+    if [ "$MODE" == "gzip" ]; then
+        FILE_NAME="btrfs-backup.img.gz"
+    else
+        FILE_NAME="btrfs-backup.img"
+    fi
     FILE_PATH="$DEST_DIR/$FILE_NAME"
 
     echo "🔧 Menyiapkan mount point $MOUNTPOINT"
@@ -29,7 +30,10 @@ save_file_btrfs() {
     if sudo mount "/dev/$DEV" "$MOUNTPOINT"; then
         echo "✅ Berhasil mount /dev/$DEV"
 
-        [ ! -d "$DEST_DIR" ] && sudo mkdir -p "$DEST_DIR"
+        if [ ! -d "$DEST_DIR" ]; then
+            echo "📁 Membuat direktori tujuan: $DEST_DIR"
+            sudo mkdir -p "$DEST_DIR"
+        fi
 
         if [ ! -e /mnt/btrfs/@_backup ]; then
             echo "❌ Source snapshot /mnt/btrfs/@_backup tidak ditemukan!"
@@ -57,50 +61,45 @@ restore_file_btrfs() {
     local MODE="$1"  # kosong atau 'gzip'
 
     echo
-    read -p "Silahkan masukkan folder asal backup [contoh: /dev/sda1/home/]: " SOURCE_PATH
+    read -p "Silahkan masukkan lokasi file backup [contoh: /dev/sda1/home/btrfs-backup.img]: " SOURCE_PATH
 
     if [[ ! "$SOURCE_PATH" =~ ^/dev/[^/]+/.+ ]]; then
-        echo "❌ Format input salah. Contoh yang benar: /dev/sda1/home/"
+        echo "❌ Format input salah. Contoh: /dev/sda1/home/btrfs-backup.img"
         return 1
     fi
 
     DEV=$(echo "$SOURCE_PATH" | cut -d'/' -f3)
-    SUBDIR=$(echo "$SOURCE_PATH" | cut -d'/' -f4-)
-
+    SUBPATH=$(echo "$SOURCE_PATH" | cut -d'/' -f4-)
+    FILE_NAME=$(basename "$SOURCE_PATH")
     MOUNTPOINT="/mnt/$DEV"
-    SOURCE_DIR="$MOUNTPOINT/$SUBDIR"
+    FILE_PATH="$MOUNTPOINT/$(dirname "$SUBPATH")/$FILE_NAME"
 
-    FILE_NAME="btrfs-backup.img"
-    [ "$MODE" == "gzip" ] && FILE_NAME="btrfs-backup.img.gz"
-
-    FILE_PATH="$SOURCE_DIR/$FILE_NAME"
+    echo "🔧 Menyiapkan mount point $MOUNTPOINT"
+    sudo mkdir -p "$MOUNTPOINT"
 
     echo "📦 Mounting /dev/$DEV ke $MOUNTPOINT..."
-    sudo mkdir -p "$MOUNTPOINT"
     if sudo mount "/dev/$DEV" "$MOUNTPOINT"; then
         echo "✅ Berhasil mount /dev/$DEV"
 
         if [ ! -f "$FILE_PATH" ]; then
-            echo "❌ File $FILE_PATH tidak ditemukan!"
+            echo "❌ File backup tidak ditemukan di $FILE_PATH"
             sudo umount "$MOUNTPOINT"
             return 2
         fi
 
         mount_btrfs 0 /mnt/btrfs
         del_snap
-        echo "♻️  Melakukan restore dari $FILE_NAME"
 
+        echo "🔄 Melakukan restore dari $FILE_PATH"
         if [ "$MODE" == "gzip" ]; then
-            gunzip -c "$FILE_PATH" | sudo btrfs receive /mnt/btrfs
+            gzip -dc "$FILE_PATH" | sudo btrfs receive /mnt/btrfs
         else
             sudo btrfs receive /mnt/btrfs < "$FILE_PATH"
         fi
 
-        echo "✅ Restore selesai."
         sudo umount /mnt/btrfs
         sudo umount "$MOUNTPOINT"
-        sync
-        pause
+        echo "✅ Restore selesai!"
     else
         echo "❌ Gagal mount /dev/$DEV"
         return 3
@@ -111,18 +110,21 @@ mount_btrfs() {
     local SUBVOLID="$1"
     local MOUNTPOINT="$2"
 
-    [ -z "$SUBVOLID" ] || [ -z "$MOUNTPOINT" ] && {
+    if [ -z "$SUBVOLID" ] || [ -z "$MOUNTPOINT" ]; then
         echo "❌ Penggunaan: mount_btrfs <subvolid> <mountpoint>"
         return 1
-    }
+    fi
 
     sudo mkdir -p "$MOUNTPOINT"
 
     for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
         echo "🔍 Mencoba mount $DEV -o subvolid=$SUBVOLID ke $MOUNTPOINT"
         if sudo mount -o subvolid="$SUBVOLID" "$DEV" "$MOUNTPOINT" 2>/dev/null; then
-            echo "✅  Berhasil mount $DEV ke $MOUNTPOINT"
+            echo "✅  Berhasil mount $DEV ke $MOUNTPOINT dengan subvolid=$SUBVOLID"
+            sudo btrfs subvolume list "$MOUNTPOINT"
             return 0
+        else
+            echo "❌ Gagal mount $DEV"
         fi
     done
 
@@ -146,7 +148,6 @@ pause() {
     read -p "Tekan [Enter] untuk kembali ke menu utama..."
 }
 
-# MENU UTAMA
 while true; do
     clear
     echo "==============================="
@@ -205,13 +206,13 @@ while true; do
                 1)
                     mount_btrfs 0 /mnt/btrfs
                     if [ -d /mnt/btrfs/@_backup ]; then
-                        echo "🗑️ Menghapus @ lama..."
+                        echo "🗑️ Menghapus subvolume @..."
                         sudo btrfs subvolume delete /mnt/btrfs/@
-                        echo "♻️ Mengembalikan @_backup ke @..."
+                        echo "♻️ Memindahkan @_backup ke @..."
                         sudo btrfs subvolume snapshot /mnt/btrfs/@_backup /mnt/btrfs/@
                         del_snap
                     else
-                        echo "❌ Tidak ditemukan /mnt/btrfs/@_backup"
+                        echo "❌ Gagal restore: /mnt/btrfs/@_backup tidak ditemukan"
                     fi
                     sudo umount /mnt/btrfs
                     sync
@@ -219,9 +220,11 @@ while true; do
                     ;;
                 2)
                     restore_file_btrfs
+                    pause
                     ;;
                 3)
                     restore_file_btrfs gzip
+                    pause
                     ;;
                 *)
                     echo "Input salah/tidak diketahui!"
