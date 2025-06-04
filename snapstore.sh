@@ -233,10 +233,12 @@ while true; do
                     ;;
                 2)
                     restore_file_btrfs
+                    sync
                     pause
                     ;;
                 3)
                     restore_file_btrfs gzip
+                    sync
                     pause
                     ;;
                 *)
