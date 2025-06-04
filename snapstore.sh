@@ -1,5 +1,18 @@
 #!/bin/bash
 
+auto_mount_target() {
+    local DEV="$1"
+    local MOUNTPOINT="$2"
+
+    FS_TYPE=$(lsblk -no FSTYPE "$DEV")
+
+    if [ "$FS_TYPE" = "btrfs" ]; then
+        sudo mount -o subvolid=0 "$DEV" "$MOUNTPOINT"
+    else
+        sudo mount "$DEV" "$MOUNTPOINT"
+    fi
+}
+
 save_file_btrfs() {
     local MODE="$1"  # boleh kosong atau 'gzip'
 
@@ -27,7 +40,7 @@ save_file_btrfs() {
     sudo mkdir -p "$MOUNTPOINT"
 
     echo "📦 Mounting /dev/$DEV ke $MOUNTPOINT..."
-    if sudo mount "/dev/$DEV" "$MOUNTPOINT"; then
+    if auto_mount_target "/dev/$DEV" "$MOUNTPOINT"; then
         echo "✅ Berhasil mount /dev/$DEV"
 
         if [ ! -d "$DEST_DIR" ]; then
@@ -78,7 +91,7 @@ restore_file_btrfs() {
     sudo mkdir -p "$MOUNTPOINT"
 
     echo "📦 Mounting /dev/$DEV ke $MOUNTPOINT..."
-    if sudo mount "/dev/$DEV" "$MOUNTPOINT"; then
+    if auto_mount_target "/dev/$DEV" "$MOUNTPOINT"; then
         echo "✅ Berhasil mount /dev/$DEV"
 
         if [ ! -f "$FILE_PATH" ]; then
