@@ -1,62 +1,70 @@
 #!/bin/bash
 
-# Fungsi: mount_subvolid <mount_point> <subvolid>
-mount_subvolid() {
-    local MOUNT_POINT="$1"
-    local SUBVOLID="$2"
+# Fungsi: get_subvolid <subvolume_name>
+get_subvolid() {
+    for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
+        if sudo mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
+            ID=$(sudo btrfs subvolume list /mnt/btrfs-top | awk -v name="$1" '$NF==name {print $2}')
+            sudo umount /mnt/btrfs-top
+            if [ -n "$ID" ]; then
+                echo "$ID"
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
 
-    if [ -z "$MOUNT_POINT" ] || [ -z "$SUBVOLID" ]; then
-        echo "❌ mount_subvolid membutuhkan 2 argumen: <mount_point> <subvolid>"
+# Fungsi: mount_subvol <mount_point> <subvolume_name>
+mount_subvol() {
+    local MOUNT_POINT="$1"
+    local SUBVOL="$2"
+
+    if [ -z "$MOUNT_POINT" ] || [ -z "$SUBVOL" ]; then
+        echo "❌ mount_subvol membutuhkan 2 argumen: <mount_point> <subvolume>"
         return 1
     fi
 
     [ ! -d "$MOUNT_POINT" ] && sudo mkdir -p "$MOUNT_POINT"
 
+    local ID=$(get_subvolid "$SUBVOL")
+    if [ -z "$ID" ]; then
+        echo "❌ Subvolume $SUBVOL tidak ditemukan!"
+        return 1
+    fi
+
     for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-        echo "🔍 Mencoba mount $DEV -o subvolid=$SUBVOLID ke $MOUNT_POINT"
-        if sudo mount -o subvolid=$SUBVOLID "$DEV" "$MOUNT_POINT" 2>/dev/null; then
-            echo "✅ Berhasil mount $DEV ke $MOUNT_POINT dengan subvolid=$SUBVOLID"
+        echo "🔍 Mencoba mount $DEV -o subvolid=$ID ke $MOUNT_POINT"
+        if sudo mount -o subvolid=$ID "$DEV" "$MOUNT_POINT" 2>/dev/null; then
+            echo "✅ Berhasil mount $DEV ke $MOUNT_POINT dengan subvolid=$ID"
             return 0
         else
-            echo "❌ Gagal mount $DEV"
+            echo "❌  Gagal mount $DEV"
         fi
     done
 
-    echo "❌ Tidak ada partisi Btrfs yang berhasil di-mount dengan subvolid=$SUBVOLID"
+    echo "❌ Tidak ada partisi Btrfs yang berhasil di-mount dengan subvolid=$ID"
     return 1
 }
 
 # Cek apakah subvolume @home ada
 echo "🔍 Mengecek keberadaan subvolume @home..."
-FOUND=0
-sudo mkdir -p /mnt/btrfs-top
-for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-    if sudo mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
-        if sudo btrfs subvolume list /mnt/btrfs-top | grep -q "@home"; then
-            FOUND=1
-        fi
-        sudo umount /mnt/btrfs-top
-        break
-    fi
-done
-sudo rmdir /mnt/btrfs-top
-
-if [ "$FOUND" -eq 0 ]; then
-    echo "❌ Subvolume @home tidak ditemukan. Program dihentikan."
+if ! get_subvolid "@home" >/dev/null; then
+    echo "❌ Subvolume @home tidak ditemukan, menghentikan proses."
     exit 1
 fi
 
-# Mount rootfs (subvolid=256 asumsinya = @)
+# Mount rootfs (@)
 sudo mkdir -p /mnt/rootfs
-mount_subvolid /mnt/rootfs 256
+mount_subvol /mnt/rootfs @
 
 # Siapkan direktori home di rootfs
 [ -d /mnt/rootfs/home ] && sudo rm -rf /mnt/rootfs/home
 sudo mkdir -p /mnt/rootfs/home
 
-# Mount home (subvolid=258 asumsinya = @home)
+# Mount home (@home)
 sudo mkdir -p /mnt/homefs
-mount_subvolid /mnt/homefs 258
+mount_subvol /mnt/homefs @home
 
 # Tampilkan list subvolume sebelum proses
 echo "📋 Subvolume SEBELUM pemindahan:"
