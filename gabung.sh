@@ -1,42 +1,62 @@
 #!/bin/bash
 
-# Fungsi: mount_subvol <mount_point> <subvolume_name>
-mount_subvol() {
+# Fungsi: mount_subvolid <mount_point> <subvolid>
+mount_subvolid() {
     local MOUNT_POINT="$1"
-    local SUBVOL="$2"
+    local SUBVOLID="$2"
 
-    if [ -z "$MOUNT_POINT" ] || [ -z "$SUBVOL" ]; then
-        echo "❌ mount_subvol membutuhkan 2 argumen: <mount_point> <subvolume>"
+    if [ -z "$MOUNT_POINT" ] || [ -z "$SUBVOLID" ]; then
+        echo "❌ mount_subvolid membutuhkan 2 argumen: <mount_point> <subvolid>"
         return 1
     fi
 
     [ ! -d "$MOUNT_POINT" ] && sudo mkdir -p "$MOUNT_POINT"
 
     for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-        echo "🔍 Mencoba mount $DEV -o subvol=$SUBVOL ke $MOUNT_POINT"
-        if sudo mount -o subvol=$SUBVOL "$DEV" "$MOUNT_POINT" 2>/dev/null; then
-            echo "✅ Berhasil mount $DEV ke $MOUNT_POINT dengan subvol=$SUBVOL"
+        echo "🔍 Mencoba mount $DEV -o subvolid=$SUBVOLID ke $MOUNT_POINT"
+        if sudo mount -o subvolid=$SUBVOLID "$DEV" "$MOUNT_POINT" 2>/dev/null; then
+            echo "✅ Berhasil mount $DEV ke $MOUNT_POINT dengan subvolid=$SUBVOLID"
             return 0
         else
             echo "❌ Gagal mount $DEV"
         fi
     done
 
-    echo "❌ Tidak ada partisi Btrfs yang berhasil di-mount dengan subvol=$SUBVOL"
+    echo "❌ Tidak ada partisi Btrfs yang berhasil di-mount dengan subvolid=$SUBVOLID"
     return 1
 }
 
-# Mount rootfs (@)
+# Cek apakah subvolume @home ada
+echo "🔍 Mengecek keberadaan subvolume @home..."
+FOUND=0
+sudo mkdir -p /mnt/btrfs-top
+for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
+    if sudo mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
+        if sudo btrfs subvolume list /mnt/btrfs-top | grep -q "@home"; then
+            FOUND=1
+        fi
+        sudo umount /mnt/btrfs-top
+        break
+    fi
+done
+sudo rmdir /mnt/btrfs-top
+
+if [ "$FOUND" -eq 0 ]; then
+    echo "❌ Subvolume @home tidak ditemukan. Program dihentikan."
+    exit 1
+fi
+
+# Mount rootfs (subvolid=256 asumsinya = @)
 sudo mkdir -p /mnt/rootfs
-mount_subvol /mnt/rootfs @
+mount_subvolid /mnt/rootfs 256
 
 # Siapkan direktori home di rootfs
 [ -d /mnt/rootfs/home ] && sudo rm -rf /mnt/rootfs/home
 sudo mkdir -p /mnt/rootfs/home
 
-# Mount home (@home)
+# Mount home (subvolid=258 asumsinya = @home)
 sudo mkdir -p /mnt/homefs
-mount_subvol /mnt/homefs @home
+mount_subvolid /mnt/homefs 258
 
 # Tampilkan list subvolume sebelum proses
 echo "📋 Subvolume SEBELUM pemindahan:"
@@ -95,13 +115,10 @@ sudo rmdir /mnt/btrfs-top
 
 # Unmount rootfs
 sudo umount /mnt/rootfs
+sync
 
 # Sukses dan prompt sebelum reboot
-echo
 echo "✅ Proses perpindahan @home ke @ berhasil"
-echo "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
-read
 
-sync
-#okeokse
+read -p "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
 sudo reboot
