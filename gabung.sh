@@ -2,16 +2,23 @@
 
 # Fungsi: get_subvolid <subvolume_name>
 get_subvolid() {
+    local NAME="$1"
+    # Pastikan mountpoint ada
+    local TOP_MP="/mnt/btrfs-top"
+    sudo mkdir -p "$TOP_MP"
+
     for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-        if sudo mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
-            ID=$(sudo btrfs subvolume list /mnt/btrfs-top | awk -v name="$1" '$NF==name {print $2}')
-            sudo umount /mnt/btrfs-top
+        if sudo mount -o subvolid=5 "$DEV" "$TOP_MP" 2>/dev/null; then
+            ID=$(sudo btrfs subvolume list "$TOP_MP" | awk -v name="$NAME" '$NF==name {print $2}')
+            sudo umount "$TOP_MP"
             if [ -n "$ID" ]; then
                 echo "$ID"
+                sudo rmdir "$TOP_MP" 2>/dev/null || true
                 return 0
             fi
         fi
     done
+    sudo rmdir "$TOP_MP" 2>/dev/null || true
     return 1
 }
 
@@ -75,6 +82,7 @@ for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
         sudo umount /mnt/btrfs-top
         break
     fi
+
 done
 
 # Pindahkan isi @home ke /home dalam @
@@ -126,6 +134,7 @@ sudo umount /mnt/rootfs
 sync
 
 # Sukses dan prompt sebelum reboot
+echo
 echo "✅ Proses perpindahan @home ke @ berhasil"
 
 read -p "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
