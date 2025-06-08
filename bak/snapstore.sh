@@ -1,4 +1,27 @@
+# Fungsi untuk mount BTRFS dengan parameter subvolid dan target mount point
+mount_btrfs() {
+    local SUBVOLID="$1"
+    local TARGET="$2"
+    
+    # Deteksi otomatis device BTRFS pertama
+    local DEFAULT_DEV
+    DEFAULT_DEV=$(lsblk -o NAME,FSTYPE -rn | awk '$2 == "btrfs" {print "/dev/" $1; exit}')
+
+    if [[ -z "$DEFAULT_DEV" ]]; then
+        echo "❌  Tidak ditemukan device dengan sistem file BTRFS"
+        return 1
+    fi
+
+    read -e -i "$DEFAULT_DEV" -p "📌  Lokasi deteksi BTRFS (edit jika tidak sesuai): " BTRFS_DEV
+
+    sudo mkdir -p "$TARGET"
+    sudo mount -o subvolid="$SUBVOLID" "$BTRFS_DEV" "$TARGET"
+}
+
 sudo mkdir -p /mnt/btrfs
+mount_btrfs 0 /mnt/btrfs
+umount /mnt/btrfs
+rm -rf /mnt/btrfs
 
 # Snapshoot
 #internal
