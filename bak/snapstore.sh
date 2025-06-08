@@ -26,9 +26,12 @@ mount_btrfs 0 /mnt/btrfs
 
 if [[ ! -d /mnt/btrfs/@ ]]; then
     echo "❌ Subvolume '@' tidak ditemukan di /mnt/btrfs"
+    umount /mnt/btrfs
+    rm -rf /mnt/btrfs
     exit 1
 fi
 sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+[[ -d /mnt/btrfs/@_backup ]] && echo "✅ Sukses clone snapshoot @ ke @_backup" || echo "❌ Gagal clone snapshoot @ ke @_backup"
 
 umount /mnt/btrfs
 rm -rf /mnt/btrfs
