@@ -40,6 +40,9 @@ sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
 [[ -d /mnt/btrfs/@_backup ]] && echo "✅ Sukses clone snapshoot @ ke @_backup" || echo "❌ Gagal clone snapshoot @ ke @_backup"
 sudo btrfs send /mnt/btrfs/@_backup > /mnt/usb/btrfs-sda1-backup.img
 
+echo "🗑️ Subvolume '@_backup' dihapus"
+btrfs subvolume delete /mnt/btrfs/@_backup
+    
 umount /mnt/btrfs
 rm -rf /mnt/btrfs
 
