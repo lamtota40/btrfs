@@ -2,135 +2,136 @@
 
 # Fungsi: get_subvolid <subvolume_name>
 get_subvolid() {
-    local NAME="$1"
-    # Pastikan mountpoint ada
-    local TOP_MP="/mnt/btrfs-top"
-    sudo mkdir -p "$TOP_MP"
+    local SUBVOL_NAME="$1"
+    local DEV
+    local ID
+
+    [ -z "$SUBVOL_NAME" ] && return 1
 
     for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-        if sudo mount -o subvolid=5 "$DEV" "$TOP_MP" 2>/dev/null; then
-            ID=$(sudo btrfs subvolume list "$TOP_MP" | awk -v name="$NAME" '$NF==name {print $2}')
-            sudo umount "$TOP_MP"
-            if [ -n "$ID" ]; then
-                echo "$ID"
-                sudo rmdir "$TOP_MP" 2>/dev/null || true
-                return 0
-            fi
+        mkdir -p /mnt/btrfs-top
+        if mount -o subvolid=0 "$DEV" /mnt/btrfs-top 2>/dev/null; then
+            ID=$(btrfs subvolume list /mnt/btrfs-top | awk -v name="$SUBVOL_NAME" '$NF == name {print $2}')
+            umount /mnt/btrfs-top
+            [ -n "$ID" ] && echo "$ID" && return 0
         fi
     done
-    sudo rmdir "$TOP_MP" 2>/dev/null || true
+
     return 1
 }
 
-# Fungsi: mount_subvol <mount_point> <subvolume_name>
-mount_subvol() {
+# Fungsi: mount_subvolid <mount_point> <subvolid>
+mount_subvolid() {
     local MOUNT_POINT="$1"
-    local SUBVOL="$2"
+    local SUBVOLID="$2"
 
-    if [ -z "$MOUNT_POINT" ] || [ -z "$SUBVOL" ]; then
-        echo "❌ mount_subvol membutuhkan 2 argumen: <mount_point> <subvolume>"
+    if [ -z "$MOUNT_POINT" ] || [ -z "$SUBVOLID" ]; then
+        echo "❌ mount_subvolid membutuhkan 2 argumen: <mount_point> <subvolid>"
         return 1
     fi
 
-    [ ! -d "$MOUNT_POINT" ] && sudo mkdir -p "$MOUNT_POINT"
-
-    local ID=$(get_subvolid "$SUBVOL")
-    if [ -z "$ID" ]; then
-        echo "❌ Subvolume $SUBVOL tidak ditemukan!"
-        return 1
-    fi
+    [ ! -d "$MOUNT_POINT" ] && mkdir -p "$MOUNT_POINT"
 
     for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-        echo "🔍 Mencoba mount $DEV -o subvolid=$ID ke $MOUNT_POINT"
-        if sudo mount -o subvolid=$ID "$DEV" "$MOUNT_POINT" 2>/dev/null; then
-            echo "✅ Berhasil mount $DEV ke $MOUNT_POINT dengan subvolid=$ID"
+        echo "🔍 Mencoba mount $DEV -o subvolid=$SUBVOLID ke $MOUNT_POINT"
+        if mount -o subvolid=$SUBVOLID "$DEV" "$MOUNT_POINT" 2>/dev/null; then
+            echo "✅  Berhasil mount $DEV ke $MOUNT_POINT dengan subvolid=$SUBVOLID"
             return 0
         else
             echo "❌  Gagal mount $DEV"
         fi
     done
 
-    echo "❌ Tidak ada partisi Btrfs yang berhasil di-mount dengan subvolid=$ID"
+    echo "❌ Tidak ada partisi Btrfs yang berhasil di-mount dengan subvolid=$SUBVOLID"
     return 1
 }
 
 # Cek apakah subvolume @home ada
 echo "🔍 Mengecek keberadaan subvolume @home..."
-if ! get_subvolid "@home" >/dev/null; then
-    echo "❌ Subvolume @home tidak ditemukan, menghentikan proses."
+ID_HOME=$(get_subvolid "@home")
+if [ -z "$ID_HOME" ]; then
+    echo "❌  Subvolume @home tidak ditemukan, menghentikan proses."
     exit 1
 fi
 
 # Mount rootfs (@)
-sudo mkdir -p /mnt/rootfs
-mount_subvol /mnt/rootfs @
+ID_ROOT=$(get_subvolid "@")
+mkdir -p /mnt/rootfs
+mount_subvolid /mnt/rootfs "$ID_ROOT"
 
 # Siapkan direktori home di rootfs
-[ -d /mnt/rootfs/home ] && sudo rm -rf /mnt/rootfs/home
-sudo mkdir -p /mnt/rootfs/home
+[ -d /mnt/rootfs/home ] && rm -rf /mnt/rootfs/home
+mkdir -p /mnt/rootfs/home
 
 # Mount home (@home)
-sudo mkdir -p /mnt/homefs
-mount_subvol /mnt/homefs @home
+mkdir -p /mnt/homefs
+mount_subvolid /mnt/homefs "$ID_HOME"
 
 # Tampilkan list subvolume sebelum proses
 echo "📋 Subvolume SEBELUM pemindahan:"
-sudo mkdir -p /mnt/btrfs-top
+mkdir -p /mnt/btrfs-top
 for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-    if sudo mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
-        sudo btrfs subvolume list /mnt/btrfs-top
-        sudo umount /mnt/btrfs-top
+    if mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
+        btrfs subvolume list /mnt/btrfs-top
+        umount /mnt/btrfs-top
         break
     fi
-
 done
 
 # Pindahkan isi @home ke /home dalam @
-sudo rsync -a /mnt/homefs/ /mnt/rootfs/home/
+rsync -a /mnt/homefs/ /mnt/rootfs/home/
 
 # Bersihkan homefs
-sudo umount /mnt/homefs
-sudo rm -rf /mnt/homefs
+umount /mnt/homefs
+rm -rf /mnt/homefs
 
 # Backup dan edit fstab
-sudo cp /mnt/rootfs/etc/fstab /mnt/rootfs/etc/fstab.bak
-sudo sed -i '/^[^#]*[[:space:]]\/home[[:space:]]\+btrfs.*subvol=@home/d' /mnt/rootfs/etc/fstab
+cp /mnt/rootfs/etc/fstab /mnt/rootfs/etc/fstab.bak
+sed -i '/^[^#]*[[:space:]]\/home[[:space:]]\+btrfs.*subvol=@home/d' /mnt/rootfs/etc/fstab
 
 # Persiapan chroot
-sudo mount --bind /dev /mnt/rootfs/dev
-sudo mount --bind /proc /mnt/rootfs/proc
-sudo mount --bind /sys /mnt/rootfs/sys
+mount --bind /dev /mnt/rootfs/dev
+mount --bind /proc /mnt/rootfs/proc
+mount --bind /sys /mnt/rootfs/sys
 
 # Jalankan grub di chroot
-sudo chroot /mnt/rootfs /bin/bash -c "
+chroot /mnt/rootfs /bin/bash -c "
 grub-reboot 0
 grub-set-default 'Ubuntu'
 update-grub
 "
 
 # Cleanup mount
-sudo umount /mnt/rootfs/dev
-sudo umount /mnt/rootfs/proc
-sudo umount /mnt/rootfs/sys
+umount /mnt/rootfs/dev
+umount /mnt/rootfs/proc
+umount /mnt/rootfs/sys
 
 # Hapus subvolume @home dari top-level
-sudo mkdir -p /mnt/btrfs-top
+mkdir -p /mnt/btrfs-top
 for DEV in $(lsblk -pnlo NAME,FSTYPE | awk '$2=="btrfs"{print $1}'); do
-    if sudo mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
-        if sudo btrfs subvolume list /mnt/btrfs-top | grep -q "@home"; then
+    if mount -o subvolid=5 "$DEV" /mnt/btrfs-top 2>/dev/null; then
+        if btrfs subvolume list /mnt/btrfs-top | grep -q "@home"; then
             echo "🗑️  Menghapus subvolume @home dari $DEV"
-            sudo btrfs subvolume delete /mnt/btrfs-top/@home
+            btrfs subvolume delete /mnt/btrfs-top/@home
         fi
+
+        # ⬅️ Tambahan: Hapus subvolume rootfs jika ada
+        if btrfs subvolume list /mnt/btrfs-top | grep -q "^.* path rootfs$"; then
+            echo "🗑️  Menghapus subvolume rootfs dari $DEV"
+            btrfs subvolume delete /mnt/btrfs-top/rootfs
+        fi
+
         echo "📋 Subvolume SETELAH penghapusan:"
-        sudo btrfs subvolume list /mnt/btrfs-top
-        sudo umount /mnt/btrfs-top
+        btrfs subvolume list /mnt/btrfs-top
+        umount /mnt/btrfs-top
         break
     fi
 done
-sudo rmdir /mnt/btrfs-top
+rmdir /mnt/btrfs-top
 
 # Unmount rootfs
-sudo umount /mnt/rootfs
+umount /mnt/rootfs
+rm -rf /mnt/rootfs
 sync
 
 # Sukses dan prompt sebelum reboot
