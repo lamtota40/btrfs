@@ -18,6 +18,7 @@ mount_btrfs() {
 
     sudo mkdir -p "$TARGET"
     sudo mount -o subvolid="$SUBVOLID" "$BTRFS_DEV" "$TARGET"
+    echo "✅ Berhasil mount subvolid=$SUBVOLID $BTRFS_DEV ke folder $TARGET"
 }
 
 sudo mkdir -p /mnt/btrfs
