@@ -30,6 +30,14 @@ if [[ ! -d /mnt/btrfs/@ ]]; then
     rm -rf /mnt/btrfs
     exit 1
 fi
+
+if [[ -d /mnt/btrfs/@_backup ]]; then
+    echo "❌ Subvolume '@_backup' sudah ada Apakah ingin menghapusnya?(y/n)"
+    umount /mnt/btrfs
+    rm -rf /mnt/btrfs
+    exit 1
+fi
+
 sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
 [[ -d /mnt/btrfs/@_backup ]] && echo "✅ Sukses clone snapshoot @ ke @_backup" || echo "❌ Gagal clone snapshoot @ ke @_backup"
 
