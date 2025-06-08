@@ -32,10 +32,8 @@ if [[ ! -d /mnt/btrfs/@ ]]; then
 fi
 
 if [[ -d /mnt/btrfs/@_backup ]]; then
-    echo "❌ Subvolume '@_backup' sudah ada Apakah ingin menghapusnya?(y/n)"
-    umount /mnt/btrfs
-    rm -rf /mnt/btrfs
-    exit 1
+    echo "🗑️ Subvolume '@_backup' sudah ada dan otomatis untuk menghapusnya"
+    btrfs subvolume delete /mnt/btrfs/@_backup
 fi
 
 sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
