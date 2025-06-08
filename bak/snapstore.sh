@@ -45,6 +45,7 @@ btrfs subvolume delete /mnt/btrfs/@_backup
     
 umount /mnt/btrfs
 rm -rf /mnt/btrfs
+echo "🏁 Proses backup selesai."
 
 # Snapshoot
 #internal
