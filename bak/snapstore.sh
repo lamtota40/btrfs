@@ -23,6 +23,13 @@ mount_btrfs() {
 
 sudo mkdir -p /mnt/btrfs
 mount_btrfs 0 /mnt/btrfs
+
+if [[ ! -d /mnt/btrfs/@ ]]; then
+    echo "❌ Subvolume '@' tidak ditemukan di /mnt/btrfs"
+    exit 1
+fi
+sudo btrfs subvolume snapshot -r /mnt/btrfs/@ /mnt/btrfs/@_backup
+
 umount /mnt/btrfs
 rm -rf /mnt/btrfs
 
