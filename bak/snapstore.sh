@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Fungsi untuk mount BTRFS dengan parameter subvolid dan target mount point
 mount_btrfs() {
     local SUBVOLID="$1"
