@@ -14,7 +14,7 @@ mount_btrfs() {
         return 1
     fi
 
-    read -e -i "$DEFAULT_DEV" -p "📌  Lokasi deteksi BTRFS (edit jika tidak sesuai): " BTRFS_DEV
+    read -e -i "$DEFAULT_DEV" -p "📌  Lokasi BTRFS (edit jika tidak sesuai): " BTRFS_DEV
 
     sudo mkdir -p "$TARGET"
     sudo mount -o subvolid="$SUBVOLID" "$BTRFS_DEV" "$TARGET"
