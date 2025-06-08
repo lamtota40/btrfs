@@ -21,7 +21,6 @@ mount_btrfs() {
     echo "✅ Berhasil mount subvolid=$SUBVOLID $BTRFS_DEV ke folder $TARGET"
 }
 
-sudo mkdir -p /mnt/btrfs
 mount_btrfs 0 /mnt/btrfs
 
 if [[ ! -d /mnt/btrfs/@ ]]; then
