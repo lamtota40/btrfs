@@ -17,17 +17,12 @@ save_file_btrfs() {
     local MODE="$1"  # boleh kosong atau 'gzip'
 
     echo
-    read -p "Silahkan masukkan folder tujuan [contoh: /dev/sda1/home/]: " TARGET_PATH
+    read -p "Silahkan masukkan folder tujuan lengkap (contoh: /mnt/usb): " DEST_DIR
 
-    if [[ ! "$TARGET_PATH" =~ ^/dev/[^/]+/.+ ]]; then
-        echo "❌ Format input salah. Contoh yang benar: /dev/sda1/home/"
+    if [ ! -d "$DEST_DIR" ]; then
+        echo "❌ Folder tujuan tidak ditemukan: $DEST_DIR"
         return 1
     fi
-
-    DEV=$(echo "$TARGET_PATH" | cut -d'/' -f3)
-    SUBDIR=$(echo "$TARGET_PATH" | cut -d'/' -f4-)
-    MOUNTPOINT="/mnt/$DEV"
-    DEST_DIR="$MOUNTPOINT/$SUBDIR"
 
     if [ "$MODE" == "gzip" ]; then
         FILE_NAME="btrfs-backup.img.gz"
@@ -36,87 +31,45 @@ save_file_btrfs() {
     fi
     FILE_PATH="$DEST_DIR/$FILE_NAME"
 
-    echo "🔧 Menyiapkan mount point $MOUNTPOINT"
-    sudo mkdir -p "$MOUNTPOINT"
-
-    echo "📦 Mounting /dev/$DEV ke $MOUNTPOINT..."
-    if auto_mount_target "/dev/$DEV" "$MOUNTPOINT"; then
-        echo "✅ Berhasil mount /dev/$DEV"
-
-        if [ ! -d "$DEST_DIR" ]; then
-            echo "📁 Membuat direktori tujuan: $DEST_DIR"
-            sudo mkdir -p "$DEST_DIR"
-        fi
-
-        if [ ! -e /mnt/btrfs/@_backup ]; then
-            echo "❌ Source snapshot /mnt/btrfs/@_backup tidak ditemukan!"
-            sudo umount "$MOUNTPOINT"
-            return 2
-        fi
-
-        echo "📝 Menyimpan $FILE_NAME ke $FILE_PATH"
-        if [ "$MODE" == "gzip" ]; then
-            sudo btrfs send /mnt/btrfs/@_backup | gzip -c > "$FILE_PATH"
-        else
-            sudo btrfs send /mnt/btrfs/@_backup > "$FILE_PATH"
-        fi
-
-        echo "💾 File berhasil disimpan!"
-        sudo umount "$MOUNTPOINT"
-        echo "✅ Selesai!"
-    else
-        echo "❌ Gagal mount /dev/$DEV"
-        return 3
+    if [ ! -e /mnt/btrfs/@_backup ]; then
+        echo "❌ Source snapshot /mnt/btrfs/@_backup tidak ditemukan!"
+        return 2
     fi
+
+    echo "📝 Menyimpan $FILE_NAME ke $FILE_PATH"
+    if [ "$MODE" == "gzip" ]; then
+        sudo btrfs send /mnt/btrfs/@_backup | gzip -c > "$FILE_PATH"
+    else
+        sudo btrfs send /mnt/btrfs/@_backup > "$FILE_PATH"
+    fi
+
+    echo "💾 File berhasil disimpan!"
+    echo "✅ Selesai!"
 }
 
 restore_file_btrfs() {
     local MODE="$1"  # kosong atau 'gzip'
 
     echo
-    read -p "Silahkan masukkan lokasi file backup [contoh: /dev/sda1/home/btrfs-backup.img]: " SOURCE_PATH
+    read -p "Silahkan masukkan lokasi file backup lengkap (contoh: /mnt/usb/btrfs-backup.img): " FILE_PATH
 
-    if [[ ! "$SOURCE_PATH" =~ ^/dev/[^/]+/.+ ]]; then
-        echo "❌ Format input salah. Contoh: /dev/sda1/home/btrfs-backup.img"
+    if [ ! -f "$FILE_PATH" ]; then
+        echo "❌ File backup tidak ditemukan di: $FILE_PATH"
         return 1
     fi
 
-    DEV=$(echo "$SOURCE_PATH" | cut -d'/' -f3)
-    SUBPATH=$(echo "$SOURCE_PATH" | cut -d'/' -f4-)
-    FILE_NAME=$(basename "$SOURCE_PATH")
-    MOUNTPOINT="/mnt/$DEV"
-    FILE_PATH="$MOUNTPOINT/$(dirname "$SUBPATH")/$FILE_NAME"
+    mount_btrfs 0 /mnt/btrfs
+    del_snap
 
-    echo "🔧 Menyiapkan mount point $MOUNTPOINT"
-    sudo mkdir -p "$MOUNTPOINT"
-
-    echo "📦 Mounting /dev/$DEV ke $MOUNTPOINT..."
-    if auto_mount_target "/dev/$DEV" "$MOUNTPOINT"; then
-        echo "✅ Berhasil mount /dev/$DEV"
-
-        if [ ! -f "$FILE_PATH" ]; then
-            echo "❌ File backup tidak ditemukan di $FILE_PATH"
-            sudo umount "$MOUNTPOINT"
-            return 2
-        fi
-
-        mount_btrfs 0 /mnt/btrfs
-        del_snap
-
-        echo "🔄 Melakukan restore dari $FILE_PATH"
-        if [ "$MODE" == "gzip" ]; then
-            gzip -dc "$FILE_PATH" | sudo btrfs receive /mnt/btrfs
-        else
-            sudo btrfs receive /mnt/btrfs < "$FILE_PATH"
-        fi
-
-        sudo umount /mnt/btrfs
-        sudo umount "$MOUNTPOINT"
-        echo "✅ Restore selesai!"
+    echo "🔄 Melakukan restore dari $FILE_PATH"
+    if [ "$MODE" == "gzip" ]; then
+        gzip -dc "$FILE_PATH" | sudo btrfs receive /mnt/btrfs
     else
-        echo "❌ Gagal mount /dev/$DEV"
-        return 3
+        sudo btrfs receive /mnt/btrfs < "$FILE_PATH"
     fi
+
+    sudo umount /mnt/btrfs
+    echo "✅ Restore selesai!"
 }
 
 mount_btrfs() {
