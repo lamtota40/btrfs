@@ -134,8 +134,4 @@ sudo umount /mnt/rootfs
 sync
 
 # Sukses dan prompt sebelum reboot
-echo
 echo "✅ Proses perpindahan @home ke @ berhasil"
-
-read -p "Silakan tekan [ENTER] untuk melanjutkan reboot atau CTRL+C untuk membatalkan..."
-sudo reboot
