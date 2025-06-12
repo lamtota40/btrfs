@@ -17,6 +17,7 @@ rm -rf /mnt/vda1
 #snapshoot
 sudo mkdir -p /mnt/snap
 sudo mount -o subvolid=5 /dev/vda1 /mnt/snap
+sudo btrfs subvolume list /mnt/snap
 sudo btrfs subvolume snapshot -r /mnt/snap/@ /mnt/snap/@_clean
 sudo umount /mnt/snap
 sudo rm -rf /mnt/snap
