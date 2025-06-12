@@ -22,21 +22,4 @@ sudo btrfs subvolume snapshot -r /mnt/snap/@ /mnt/snap/@_clean
 sudo btrfs subvolume list /mnt/snap
 sudo umount /mnt/snap
 sudo rm -rf /mnt/snap
-
-#!/bin/bash
-#restore
-sudo mkdir -p /mnt/res
-sudo mount -o subvolid=5 /dev/vda1 /mnt/res
-sudo btrfs subvolume list /mnt/res
-sudo btrfs subvolume delete /mnt/res/@
-sudo btrfs subvolume snapshot /mnt/res/@_clean /mnt/res/@
-sudo btrfs subvolume list /mnt/res
-sudo umount /mnt/res
-sudo rm -rf /mnt/res
 sudo reboot
-
-
-
-#etc
-
-sudo grub-reboot 'Grml Rescue System (grml-small-2024.12-amd64.iso)'
