@@ -19,6 +19,7 @@ sudo mkdir -p /mnt/snap
 sudo mount -o subvolid=5 /dev/vda1 /mnt/snap
 sudo btrfs subvolume list /mnt/snap
 sudo btrfs subvolume snapshot -r /mnt/snap/@ /mnt/snap/@_clean
+sudo btrfs subvolume list /mnt/snap
 sudo umount /mnt/snap
 sudo rm -rf /mnt/snap
 
@@ -26,8 +27,10 @@ sudo rm -rf /mnt/snap
 #restore
 sudo mkdir -p /mnt/res
 sudo mount -o subvolid=5 /dev/vda1 /mnt/res
+sudo btrfs subvolume list /mnt/res
 sudo btrfs subvolume delete /mnt/res/@
 sudo btrfs subvolume snapshot /mnt/res/@clean /mnt/res/@
+sudo btrfs subvolume list /mnt/res
 sudo umount /mnt/res
 sudo rm -rf /mnt/res
 sudo reboot
