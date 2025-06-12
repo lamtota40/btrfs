@@ -31,3 +31,9 @@ sudo btrfs subvolume snapshot /mnt/res/@clean /mnt/res/@
 sudo umount /mnt/res
 sudo rm -rf /mnt/res
 sudo reboot
+
+
+
+#etc
+sudo apt install software-properties-common nano
+sudo grub-reboot 'Grml Rescue System (grml-small-2024.12-amd64.iso)'
