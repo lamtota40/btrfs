@@ -5,6 +5,7 @@ sudo mount -o subvolid=5 /dev/vda1 /mnt/res
 sudo btrfs subvolume list /mnt/res
 sudo btrfs subvolume delete /mnt/res/@
 sudo btrfs subvolume snapshot /mnt/res/@_clean /mnt/res/@
+sudo btrfs subvolume set-default $(sudo btrfs subvolume list /mnt/res | grep "path @ " | awk '{print $2}') /mnt/res
 sudo btrfs subvolume list /mnt/res
 sudo umount /mnt/res
 sudo rm -rf /mnt/res
